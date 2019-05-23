@@ -60,7 +60,7 @@ void tokenize()
             p++;
             continue;
         }
-        if (*p == '+' || *p == '-')
+        if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '(' || *p == ')')
         {
             tokens[i].ty = *p;
             tokens[i].input = p;
@@ -82,6 +82,156 @@ void tokenize()
     tokens[i].input = p;
 }
 
+// パーサーを書くときの基本的な戦略は非終端記号をそのまま関数にマップする
+enum
+{
+    ND_NUM = 256,
+};
+
+typedef struct Node
+{
+    int ty;           //演算子かND_NUM
+    struct Node *lhs; // 左辺
+    struct Node *rhs; // 右辺
+    int val;          // tyがND_NUMの場合のみ使う
+} Node;
+
+Node *new_node(int ty, Node *lhs, Node *rhs)
+{
+    Node *node = malloc(sizeof(Node));
+    node->ty = ty;
+    node->lhs = lhs;
+    node->rhs = rhs;
+    return node;
+}
+
+Node *new_node_num(int val)
+{
+    //↑ポインタを返す関数
+    Node *node = malloc(sizeof(Node));
+    node->ty = ND_NUM;
+    node->val = val;
+    return node;
+}
+
+int pos = 0;
+
+int consume(int ty)
+{
+    if (tokens[pos].ty != ty)
+    {
+        return 0;
+    }
+    pos++;
+    return 1;
+}
+
+/*
+expr = mul ("+" mul | "-" mul)*
+mul  = term ("*" term | "/" term)*
+term = num | "(" expr ")"
+*/
+// プロトタイプ
+Node *expr();
+Node *mul();
+Node *term();
+
+// EBNF term
+//term = num | "(" expr ")"
+Node *term()
+{
+    // 次のトークンが'(' '(' expr ')'のはず)
+    if (consume('('))
+    { //)
+        Node *node = expr();
+        if (!consume(')'))
+        {
+            error_at(tokens[pos].input, "開きカッコにたいして閉じカッコがありません");
+        }
+        return node;
+    }
+    // そうでなければ数値
+    if (tokens[pos].ty == TK_NUM)
+    {
+        return new_node_num(tokens[pos++].val);
+    }
+}
+// EBNF mul
+// mul  = term ("*" term | "/" term)*
+Node *mul()
+{
+    Node *node = term();
+    for (;;)
+    {
+        if (consume('*'))
+        {
+            node = new_node('*', node, term());
+        }
+        else if (consume('/'))
+        {
+            node = new_node('/', node, term());
+        }
+        else
+        {
+            return node;
+        }
+    }
+}
+
+// EBNF expr
+// expr = mul ("+" mul | "-" mul)*
+Node *expr()
+{
+    Node *node = mul();
+    for (;;)
+    {
+        if (consume('+'))
+        {
+            node = new_node('+', node, mul());
+        }
+        else if (consume('-'))
+        {
+            node = new_node('-', node, mul());
+        }
+        else
+        {
+            return node;
+        }
+    }
+}
+
+void gen(Node *node)
+{
+    if (node->ty == ND_NUM)
+    {
+        printf("  push %d\n", node->val);
+        return;
+    }
+    gen(node->lhs);
+    gen(node->rhs);
+
+    printf("  pop rdi\n");
+    printf("  pop rax\n");
+
+    switch (node->ty)
+    {
+    case '+':
+        printf("  add rax, rdi\n");
+        break;
+    case '-':
+        printf("  sub rax, rdi\n");
+        break;
+    case '*':
+        printf("  imul rdi\n");
+        break;
+    case '/':
+        printf("  cqo\n");
+        printf("  idiv rdi\n");
+        break;
+    }
+    printf("  push rax\n");
+}
+
 int main(int argc, char **argv)
 {
     if (argc != 2)
@@ -93,46 +243,16 @@ int main(int argc, char **argv)
     // トークナイズする
     user_input = argv[1];
     tokenize();
+    Node *node = expr();
 
     // アセンブリの前半を出力
     printf(".intel_syntax noprefix\n");
     printf(".global main\n");
     printf("main:\n");
-    // 式の最初は数でなければならないのでチェックして
-    // 最初のmovを出力
-    if (tokens[0].ty != TK_NUM)
-    {
-        error_at(tokens[0].input, "数ではありません");
-    }
-    printf("  mov rax, %d\n", tokens[0].val);
 
-    // '+ <数>' または '- <数>'というトークンのならびを消費しつつ
-    /// アセンブリを出力
-    int i = 1;
-    while (tokens[i].ty != TK_EOF)
-    {
-        if (tokens[i].ty == '+')
-        {
-            i++;
-            if (tokens[i].ty != TK_NUM)
-                error_at(tokens[i].input, "数ではありません");
-            printf("  add rax, %d\n", tokens[i].val);
-            i++;
-            continue;
-        }
-        if (tokens[i].ty == '-')
-        {
-            i++;
-            if (tokens[i].ty != TK_NUM)
-                error_at(tokens[i].input, "数ではありません");
-            printf("  sub rax, %d\n", tokens[i].val);
-            i++;
-            continue;
-        }
+    gen(node);
 
-        error_at(tokens[i].input, "予期せぬトークンです");
-        return 1;
-    }
+    printf("  pop rax\n");
     printf("  ret\n");
     return 0;
 }
