@@ -11,6 +11,12 @@ enum
     TK_EOF,       // 入力の終わりを表すトークン
 };
 
+// パーサーを書くときの基本的な戦略は非終端記号をそのまま関数にマップする
+enum
+{
+    ND_NUM = 256, // ノードnum
+};
+
 // トークンの型
 typedef struct
 {
@@ -18,6 +24,26 @@ typedef struct
     int val;     // tyがTK_NUMの場合、その数値
     char *input; // トークン文字列(エラーメッセージ用途)
 } Token;
+
+typedef struct Node
+{
+    int ty;           //演算子かND_NUM
+    struct Node *lhs; // 左辺
+    struct Node *rhs; // 右辺
+    int val;          // tyがND_NUMの場合のみ使う
+} Node;
+
+// プロトタイプ
+void error_at(char*, char*);
+void tokenize();
+Node *new_node(int, Node*, Node*);
+Node *new_node_num(int);
+int consume(int);
+Node *expr();
+Node *mul();
+Node *term();
+void gen(Node *);
+void error(char*, ...);
 
 // 入力プログラム
 char *user_input;
@@ -82,20 +108,6 @@ void tokenize()
     tokens[i].input = p;
 }
 
-// パーサーを書くときの基本的な戦略は非終端記号をそのまま関数にマップする
-enum
-{
-    ND_NUM = 256,
-};
-
-typedef struct Node
-{
-    int ty;           //演算子かND_NUM
-    struct Node *lhs; // 左辺
-    struct Node *rhs; // 右辺
-    int val;          // tyがND_NUMの場合のみ使う
-} Node;
-
 Node *new_node(int ty, Node *lhs, Node *rhs)
 {
     Node *node = malloc(sizeof(Node));
@@ -131,10 +143,6 @@ expr = mul ("+" mul | "-" mul)*
 mul  = term ("*" term | "/" term)*
 term = num | "(" expr ")"
 */
-// プロトタイプ
-Node *expr();
-Node *mul();
-Node *term();
 
 // EBNF term
 //term = num | "(" expr ")"
@@ -236,7 +244,7 @@ int main(int argc, char **argv)
 {
     if (argc != 2)
     {
-        fprintf(stderr, "引数が不正");
+        error("引数が不正");
         return 1;
     }
 
