@@ -139,13 +139,14 @@ int consume(int ty)
 }
 
 /*
-expr = mul ("+" mul | "-" mul)*
-mul  = term ("*" term | "/" term)*
-term = num | "(" expr ")"
+ * EBNF
+ * expr = mul ("+" mul | "-" mul)*
+ * mul  = term ("*" term | "/" term)*
+ * term = num | "(" expr ")"
 */
 
 // EBNF term
-//term = num | "(" expr ")"
+// term = num | "(" expr ")"
 Node *term()
 {
     // 次のトークンが'(' '(' expr ')'のはず)
