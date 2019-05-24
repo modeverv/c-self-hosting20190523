@@ -41,6 +41,7 @@ Node *new_node_num(int);
 int consume(int);
 Node *expr();
 Node *mul();
+Node *unary();
 Node *term();
 void gen(Node *);
 void error(char*, ...);
@@ -137,13 +138,22 @@ int consume(int ty)
     pos++;
     return 1;
 }
-
 /*
- * EBNF
- * expr = mul ("+" mul | "-" mul)*
- * mul  = term ("*" term | "/" term)*
- * term = num | "(" expr ")"
+EBNF
+expr  = mul ("+" mul | "-" mul)*
+mul   = unary ("*" unary | "/" unary)*
+unary = ("+" | "-")? term
+term  = num | "(" expr ")"
 */
+
+Node *unary()
+{
+    if(consume('+'))
+        return term();
+    if(consume('-'))
+        return new_node('-', new_node_num(0), term());
+    return term();
+}
 
 // EBNF term
 // term = num | "(" expr ")"
@@ -167,18 +177,19 @@ Node *term()
 }
 // EBNF mul
 // mul  = term ("*" term | "/" term)*
+// mul   = unary ("*" unary | "/" unary)*
 Node *mul()
 {
-    Node *node = term();
+    Node *node = unary();
     for (;;)
     {
         if (consume('*'))
         {
-            node = new_node('*', node, term());
+            node = new_node('*', node, unary());
         }
         else if (consume('/'))
         {
-            node = new_node('/', node, term());
+            node = new_node('/', node, unary());
         }
         else
         {
