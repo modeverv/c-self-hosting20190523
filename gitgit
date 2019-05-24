@@ -5,4 +5,4 @@ if [ -z "$MESSAGE" ]; then
 fi
 git add .
 git commit -m "$MESSAGE"
-git push
+git push --all
