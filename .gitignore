@@ -72,3 +72,5 @@ dkms.conf
 *.o
 9cc/9cc
 tmp*
+9cc/9cc.dSYM
+9cc/.vscode

@@ -8,13 +8,21 @@
 enum
 {
     TK_NUM = 256, // 整数トークン
-    TK_EOF,       // 入力の終わりを表すトークン
+    TK_EQ,
+    TK_NE,
+    TK_LE,
+    TK_GE,
+    TK_EOF, // 入力の終わりを表すトークン
 };
 
 // パーサーを書くときの基本的な戦略は非終端記号をそのまま関数にマップする
 enum
 {
     ND_NUM = 256, // ノードnum
+    ND_EQ,
+    ND_NE,
+    ND_LE,
+    ND_GE,
 };
 
 // トークンの型
@@ -34,17 +42,20 @@ typedef struct Node
 } Node;
 
 // プロトタイプ
-void error_at(char*, char*);
+void error_at(char *, char *);
 void tokenize();
-Node *new_node(int, Node*, Node*);
+Node *new_node(int, Node *, Node *);
 Node *new_node_num(int);
 int consume(int);
 Node *expr();
 Node *mul();
 Node *unary();
 Node *term();
+Node *equality();
+Node *relational();
+Node *add();
 void gen(Node *);
-void error(char*, ...);
+void error(char *, ...);
 
 // 入力プログラム
 char *user_input;
@@ -87,6 +98,57 @@ void tokenize()
             p++;
             continue;
         }
+        
+        // == != <= >=
+        if (strncmp(p, "==", 2) == 0)
+        {
+            tokens[i].ty = TK_EQ;
+            tokens[i].input = p;
+            i++;
+            p++;
+            p++;
+            continue;
+        }
+
+        if (strncmp(p, "!=", 2) == 0)
+        {
+            tokens[i].ty = TK_NE;
+            tokens[i].input = p;
+            i++;
+            p++;
+            p++;
+            continue;
+        }
+
+        if (strncmp(p, "<=", 2) == 0)
+        {
+            tokens[i].ty = TK_LE;
+            tokens[i].input = p;
+            i++;
+            p++;
+            p++;
+            continue;
+        }
+
+        if (strncmp(p, ">=", 2) == 0)
+        {
+            tokens[i].ty = TK_GE;
+            tokens[i].input = p;
+            i++;
+            p++;
+            p++;
+            continue;
+        }
+
+        if(*p == '>' || *p == '<')
+        {
+            tokens[i].ty = *p;
+            tokens[i].input = p;
+            i++;
+            p++;
+            continue;
+        }
+        
         if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '(' || *p == ')')
         {
             tokens[i].ty = *p;
@@ -138,69 +200,58 @@ int consume(int ty)
     pos++;
     return 1;
 }
+
 /*
-EBNF
-expr  = mul ("+" mul | "-" mul)*
-mul   = unary ("*" unary | "/" unary)*
-unary = ("+" | "-")? term
-term  = num | "(" expr ")"
+expr       = equality
+equality   = relational ("==" relational | "!=" relational)*
+relational = add ("<" add | "<=" add | ">" add | ">=" add)*
+add        = mul ("+" mul | "-" mul)*
+mul        = unary ("*" unary | "/" unary)*
+unary      = ("+" | "-")? term
+term       = num | "(" expr ")"
 */
 
-Node *unary()
+Node *expr()
 {
-    if(consume('+'))
-        return term();
-    if(consume('-'))
-        return new_node('-', new_node_num(0), term());
-    return term();
+    return equality();
 }
 
-// EBNF term
-// term = num | "(" expr ")"
-Node *term()
+Node *equality()
 {
-    // 次のトークンが'(' '(' expr ')'のはず)
-    if (consume('('))
-    { //)
-        Node *node = expr();
-        if (!consume(')'))
-        {
-            error_at(tokens[pos].input, "開きカッコにたいして閉じカッコがありません");
-        }
+    Node *node = relational();
+    if (consume(TK_EQ))
+    {
+        return new_node(ND_EQ, node, relational());
+    }
+    else if (consume(TK_NE))
+    {
+        return new_node(ND_NE, node, relational());
+    }
+    else
+    {
         return node;
     }
-    // そうでなければ数値
-    if (tokens[pos].ty == TK_NUM)
-    {
-        return new_node_num(tokens[pos++].val);
-    }
-}
-// EBNF mul
-// mul  = term ("*" term | "/" term)*
-// mul   = unary ("*" unary | "/" unary)*
-Node *mul()
-{
-    Node *node = unary();
-    for (;;)
-    {
-        if (consume('*'))
-        {
-            node = new_node('*', node, unary());
-        }
-        else if (consume('/'))
-        {
-            node = new_node('/', node, unary());
-        }
-        else
-        {
-            return node;
-        }
-    }
 }
 
-// EBNF expr
-// expr = mul ("+" mul | "-" mul)*
-Node *expr()
+Node *relational()
+{
+    Node *node = add();
+    if(consume('<')){
+        return new_node('<', node, add());
+    }
+    if(consume(TK_LE)){
+        return new_node(ND_LE, node, add());
+    }
+    if(consume('>')){
+        return new_node('<', add(), node);
+    }
+    if(consume(TK_GE)){
+        return new_node(ND_LE, add(), node);
+    }
+    return node;
+}
+
+Node *add()
 {
     Node *node = mul();
     for (;;)
@@ -217,6 +268,58 @@ Node *expr()
         {
             return node;
         }
+    }
+}
+
+Node *mul()
+{
+    Node *node = unary();
+    if (consume('*'))
+    {
+        node = new_node('*', node, unary());
+    }
+    else if (consume('/'))
+    {
+        node = new_node('/', node, unary());
+    }
+    else
+    {
+        return node;
+    }
+}
+
+Node *unary()
+{
+    if (consume('+'))
+    {
+        return term();
+    }
+    if (consume('-'))
+    {
+        return new_node('-', new_node_num(0), term());
+    }
+    else
+    {
+        return term();
+    }
+}
+
+Node *term()
+{
+    // 次のトークンが'(' '(' expr ')'のはず)
+    if (consume('('))
+    {
+        Node *node = expr();
+        if (!consume(')'))
+        {
+            error_at(tokens[pos].input, "開きカッコにたいして閉じカッコがありません");
+        }
+        return node;
+    }
+    // そうでなければ数値
+    if (tokens[pos].ty == TK_NUM)
+    {
+        return new_node_num(tokens[pos++].val);
     }
 }
 
@@ -248,12 +351,33 @@ void gen(Node *node)
         printf("  cqo\n");
         printf("  idiv rdi\n");
         break;
+    case ND_EQ:
+        printf("  cmp rax, rdi\n");
+        printf("  sete al\n");
+        printf("  movzb rax, al\n");
+        break;
+    case ND_NE:
+        printf("  cmp rax, rdi\n");
+        printf("  setne al\n");
+        printf("  movzb rax, al\n");
+        break;
+    case '<':
+        printf("  cmp rax, rdi\n");
+        printf("  setl al\n");
+        printf("  movzb rax, al\n");
+        break;
+    case ND_LE:
+        printf("  cmp rax, rdi\n");
+        printf("  setle al\n");
+        printf("  movzb rax, al\n");
+        break;
     }
     printf("  push rax\n");
 }
 
 int main(int argc, char **argv)
 {
+
     if (argc != 2)
     {
         error("引数が不正");
