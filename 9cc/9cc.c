@@ -41,9 +41,36 @@ typedef struct Node
     int val;          // tyがND_NUMの場合のみ使う
 } Node;
 
+typedef struct
+{
+    void **data;
+    int capacity;
+    int len;
+} Vector;
+
+Vector *new_vector()
+{
+    Vector *vec = malloc(sizeof(Vector));
+    vec->data = malloc(sizeof(void *) * 16);
+    vec->capacity = 16;
+    vec->len = 0;
+    return vec;
+}
+void vec_push(Vector *vec, void *elem)
+{
+    if (vec->capacity == vec->len)
+    {
+        vec->capacity *= 2;
+        vec->data = realloc(vec->data, sizeof(void *) * vec->capacity);
+    }
+    vec->data[vec->len++] = elem;
+}
+
 // プロトタイプ
 void error_at(char *, char *);
 void tokenize();
+Vector *new_vector();
+void vec_push(Vector *vec, void *elem);
 Node *new_node(int, Node *, Node *);
 Node *new_node_num(int);
 int consume(int);
@@ -56,13 +83,15 @@ Node *relational();
 Node *add();
 void gen(Node *);
 void error(char *, ...);
+// test
+int expect(int, int, int);
+void runtest();
 
 // 入力プログラム
 char *user_input;
 
-// トークナイズした結果のトークン列はこの配列に保存する
-// 100娘以上のトークンは来ないものとする
-Token tokens[100];
+// Tokenはここに入る
+Vector *vec;
 
 // エラーを報告するための関数
 // printfと同じ引数を取る
@@ -92,19 +121,21 @@ void tokenize()
     int i = 0;
     while (*p)
     {
+        Token *t = malloc(sizeof(*t));
         // 空白をスキップ
         if (isspace(*p))
         {
             p++;
             continue;
         }
-        
+
         // == != <= >=
         if (strncmp(p, "==", 2) == 0)
         {
-            tokens[i].ty = TK_EQ;
-            tokens[i].input = p;
-            i++;
+            t->ty = TK_EQ;
+            t->input = p;
+            vec_push(vec, (void *)t);
+
             p++;
             p++;
             continue;
@@ -112,9 +143,10 @@ void tokenize()
 
         if (strncmp(p, "!=", 2) == 0)
         {
-            tokens[i].ty = TK_NE;
-            tokens[i].input = p;
-            i++;
+            t->ty = TK_NE;
+            t->input = p;
+            vec_push(vec, (void *)t);
+
             p++;
             p++;
             continue;
@@ -122,9 +154,10 @@ void tokenize()
 
         if (strncmp(p, "<=", 2) == 0)
         {
-            tokens[i].ty = TK_LE;
-            tokens[i].input = p;
-            i++;
+            t->ty = TK_LE;
+            t->input = p;
+            vec_push(vec, (void *)t);
+
             p++;
             p++;
             continue;
@@ -132,43 +165,50 @@ void tokenize()
 
         if (strncmp(p, ">=", 2) == 0)
         {
-            tokens[i].ty = TK_GE;
-            tokens[i].input = p;
-            i++;
+            t->ty = TK_GE;
+            t->input = p;
+            vec_push(vec, (void *)t);
+
             p++;
             p++;
             continue;
         }
 
-        if(*p == '>' || *p == '<')
+        if (*p == '>' || *p == '<')
         {
-            tokens[i].ty = *p;
-            tokens[i].input = p;
-            i++;
+            t->ty = *p;
+            t->input = p;
+            vec_push(vec, (void *)t);
+
             p++;
             continue;
         }
-        
+
         if (*p == '+' || *p == '-' || *p == '*' || *p == '/' || *p == '(' || *p == ')')
         {
-            tokens[i].ty = *p;
-            tokens[i].input = p;
-            i++;
+            t->ty = *p;
+            t->input = p;
+            vec_push(vec, (void *)t);
+
             p++;
             continue;
         }
         if (isdigit(*p))
         {
-            tokens[i].ty = TK_NUM;
-            tokens[i].input = p;
-            tokens[i].val = strtol(p, &p, 10);
-            i++;
+            int val = strtol(p, &p, 10);
+            t->ty = TK_NUM;
+            t->input = p;
+            t->val = val;
+            vec_push(vec, (void *)t);
+
             continue;
         }
         error_at(p, "トークナイズできません");
     }
-    tokens[i].ty = TK_EOF;
-    tokens[i].input = p;
+    Token *t = malloc(sizeof(*t));
+    t->ty = TK_EOF;
+    t->input = p;
+    vec_push(vec, (void *)t);
 }
 
 Node *new_node(int ty, Node *lhs, Node *rhs)
@@ -189,11 +229,12 @@ Node *new_node_num(int val)
     return node;
 }
 
-int pos = 0;
+unsigned long pos = 0;
 
 int consume(int ty)
 {
-    if (tokens[pos].ty != ty)
+
+    if (((Token *)vec->data[pos])->ty != ty)
     {
         return 0;
     }
@@ -236,16 +277,20 @@ Node *equality()
 Node *relational()
 {
     Node *node = add();
-    if(consume('<')){
+    if (consume('<'))
+    {
         return new_node('<', node, add());
     }
-    if(consume(TK_LE)){
+    if (consume(TK_LE))
+    {
         return new_node(ND_LE, node, add());
     }
-    if(consume('>')){
+    if (consume('>'))
+    {
         return new_node('<', add(), node);
     }
-    if(consume(TK_GE)){
+    if (consume(TK_GE))
+    {
         return new_node(ND_LE, add(), node);
     }
     return node;
@@ -312,14 +357,14 @@ Node *term()
         Node *node = expr();
         if (!consume(')'))
         {
-            error_at(tokens[pos].input, "開きカッコにたいして閉じカッコがありません");
+            error_at(((Token *)vec->data[pos])->input, "開きカッコにたいして閉じカッコがありません");
         }
         return node;
     }
     // そうでなければ数値
-    if (tokens[pos].ty == TK_NUM)
+    if (((Token *)vec->data[pos])->ty == TK_NUM)
     {
-        return new_node_num(tokens[pos++].val);
+        return new_node_num(((Token *)vec->data[pos++])->val);
     }
 }
 
@@ -384,8 +429,18 @@ int main(int argc, char **argv)
         return 1;
     }
 
+    if (strcmp(argv[1], "-test") == 0)
+    {
+        printf("%s\n", argv[1]);
+        runtest();
+        return 0;
+    }
+
+    vec = new_vector();
+
     // トークナイズする
     user_input = argv[1];
+    //user_input = "5+10";
     tokenize();
     Node *node = expr();
 
@@ -399,4 +454,30 @@ int main(int argc, char **argv)
     printf("  pop rax\n");
     printf("  ret\n");
     return 0;
+}
+
+int expect(int line, int expected, int actual)
+{
+    if (expected == actual)
+        return 0;
+    fprintf(stderr, "%d: %d expected, but got %d\n",
+            line, expected, actual);
+    exit(1);
+}
+
+void runtest()
+{
+    Vector *vec = new_vector();
+    expect(__LINE__, 0, vec->len);
+
+    for (int i = 0; i < 100; i++)
+        vec_push(vec, (void *)i);
+
+    expect(__LINE__, 100, vec->len);
+    expect(__LINE__, 0, (long)vec->data[0]);
+    expect(__LINE__, 50, (long)vec->data[50]);
+    expect(__LINE__, 99, (long)vec->data[99]);
+
+    printf("OK\n");
+    return;
 }
