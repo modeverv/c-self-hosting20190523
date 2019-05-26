@@ -90,9 +90,7 @@ void runtest();
 // 入力プログラム
 char *user_input;
 
-// トークナイズした結果のトークン列はこの配列に保存する
-// 100以上のトークンは来ないものとする
-Token tokens[100];
+// Tokenはここに入る
 Vector *vec;
 
 // エラーを報告するための関数
@@ -138,9 +136,6 @@ void tokenize()
             t->input = p;
             vec_push(vec, (void *)t);
 
-            tokens[i].ty = TK_EQ;
-            tokens[i].input = p;
-            i++;
             p++;
             p++;
             continue;
@@ -152,9 +147,6 @@ void tokenize()
             t->input = p;
             vec_push(vec, (void *)t);
 
-            tokens[i].ty = TK_NE;
-            tokens[i].input = p;
-            i++;
             p++;
             p++;
             continue;
@@ -166,9 +158,6 @@ void tokenize()
             t->input = p;
             vec_push(vec, (void *)t);
 
-            tokens[i].ty = TK_LE;
-            tokens[i].input = p;
-            i++;
             p++;
             p++;
             continue;
@@ -180,9 +169,6 @@ void tokenize()
             t->input = p;
             vec_push(vec, (void *)t);
 
-            tokens[i].ty = TK_GE;
-            tokens[i].input = p;
-            i++;
             p++;
             p++;
             continue;
@@ -194,9 +180,6 @@ void tokenize()
             t->input = p;
             vec_push(vec, (void *)t);
 
-            tokens[i].ty = *p;
-            tokens[i].input = p;
-            i++;
             p++;
             continue;
         }
@@ -207,9 +190,6 @@ void tokenize()
             t->input = p;
             vec_push(vec, (void *)t);
 
-            tokens[i].ty = *p;
-            tokens[i].input = p;
-            i++;
             p++;
             continue;
         }
@@ -221,10 +201,6 @@ void tokenize()
             t->val = val;
             vec_push(vec, (void *)t);
 
-            tokens[i].ty = TK_NUM;
-            tokens[i].input = p;
-            tokens[i].val = val;
-            i++;
             continue;
         }
         error_at(p, "トークナイズできません");
@@ -233,9 +209,6 @@ void tokenize()
     t->ty = TK_EOF;
     t->input = p;
     vec_push(vec, (void *)t);
-
-    tokens[i].ty = TK_EOF;
-    tokens[i].input = p;
 }
 
 Node *new_node(int ty, Node *lhs, Node *rhs)
@@ -262,7 +235,6 @@ int consume(int ty)
 {
 
     if (((Token *)vec->data[pos])->ty != ty)
-    //    if (tokens[pos].ty != ty)
     {
         return 0;
     }
@@ -385,16 +357,13 @@ Node *term()
         Node *node = expr();
         if (!consume(')'))
         {
-            //error_at(tokens[pos].input, "開きカッコにたいして閉じカッコがありません");
             error_at(((Token *)vec->data[pos])->input, "開きカッコにたいして閉じカッコがありません");
         }
         return node;
     }
     // そうでなければ数値
-    //if (tokens[pos].ty == TK_NUM)
     if (((Token *)vec->data[pos])->ty == TK_NUM)
     {
-        //return new_node_num(tokens[pos++].val);
         return new_node_num(((Token *)vec->data[pos++])->val);
     }
 }
