@@ -69,7 +69,7 @@ Node *term();
 Node *equality();
 Node *relational();
 Node *add();
-void **program();
+void program();
 Node *stmt();
 Node *assign();
 void gen_lval(Node *);

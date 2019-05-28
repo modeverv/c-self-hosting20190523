@@ -232,7 +232,7 @@ Node *stmt()
     return node;
 }
 
-void **program()
+void program()
 {
     int i = 0;
     while (((Token *)vec->data[pos])->ty != TK_EOF)
