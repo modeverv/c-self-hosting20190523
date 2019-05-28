@@ -1,5 +1,12 @@
 #include "9cc.h"
 
+int is_alnum(char c) {
+  return ('a' <= c && c <= 'z') ||
+         ('A' <= c && c <= 'Z') ||
+         ('0' <= c && c <= '9') ||
+         (c == '_');
+}
+
 void tokenize()
 {
     char *p = user_input;
@@ -10,6 +17,43 @@ void tokenize()
         // 空白をスキップ
         if (isspace(*p))
         {
+            p++;
+            continue;
+        }
+
+        if (*p == ';')
+        {
+            t->ty = ';';
+            t->input = p;
+            vec_push(vec, (void *)t);
+            p++;
+            continue;
+        }
+
+        if (*p == '=')
+        {
+            t->ty = '=';
+            t->input = p;
+            vec_push(vec, (void *)t);
+            p++;
+            continue;
+        }
+
+        if (strncmp(p, "return", 6)==0 && !is_alnum(p[6]))
+        {
+            t->ty = TK_RETURN;
+            t->input = p;
+            vec_push(vec, (void *)t);
+            p += 6;
+            continue;
+        }
+
+        if ('a' <= *p && *p <= 'z'){
+            t->ty = TK_IDENT;
+            t->input = p;
+            t->name = *p;
+            t->val = *p - 'a';
+            vec_push(vec, (void *)t);
             p++;
             continue;
         }
@@ -114,6 +158,15 @@ Node *new_node_num(int val)
     return node;
 }
 
+Node *new_node_ident(int val)
+{
+    //error("%c",val);
+    Node *node = malloc(sizeof(Node));
+    node->ty = ND_IDENT;
+    node->name = val;
+    return node;
+}
+
 unsigned long pos = 0;
 
 int consume(int ty)
@@ -136,12 +189,62 @@ mul        = unary ("*" unary | "/" unary)*
 unary      = ("+" | "-")? term
 term       = num | "(" expr ")"
 */
+/*
+- program    = stmt*
+- stmt       = expr ";"
+expr       = assign
+- assign     = equality ("=" assign)?
+equality   = relational ("==" relational | "!=" relational)*
+relational = add ("<" add | "<=" add | ">" add | ">=" add)*
+add        = mul ("+" mul | "-" mul)*
+mul        = unary ("*" unary | "/" unary)*
+unary      = ("+" | "-")? term
+term       = num | ident | "(" expr ")"
+*/
 
+Node *assign()
+{
+    Node *node = equality();
+    if (consume('='))
+        node = new_node('=', node, assign());
+    return node;
+}
+
+Node *expr()
+{
+    return assign();
+}
+
+Node *stmt()
+{
+    Node *node;
+    if(consume(TK_RETURN))
+    {
+        node = malloc(sizeof(Node));
+        node->ty = ND_RETURN;
+        node->lhs = expr();
+    }else {
+        node = expr();
+    }
+
+    if (!consume(';'))
+        error_at(((Token *)vec->data[pos])->input, "';'ではないトークンです");
+    return node;
+}
+
+void **program()
+{
+    int i = 0;
+    while (((Token *)vec->data[pos])->ty != TK_EOF)
+        code[i++] = stmt();
+    code[i] = NULL;
+}
+/*
 Node *expr()
 {
     return equality();
 }
-
+*/
 Node *equality()
 {
     Node *node = relational();
@@ -246,10 +349,18 @@ Node *term()
             error_at(((Token *)vec->data[pos])->input, "開きカッコにたいして閉じカッコがありません");
         }
         return node;
+    } 
+    if  (((Token *)vec->data[pos])->ty == TK_IDENT) 
+    {
+        //error("%d",((Token *)vec->data[pos++])->name);
+        return new_node_ident(((Token *)vec->data[pos++])->name);
     }
-    else/* if (((Token *)vec->data[pos])->ty == TK_NUM)*/
-    // そうでなければ数値
+    if (((Token *)vec->data[pos])->ty == TK_NUM)
     {
         return new_node_num(((Token *)vec->data[pos++])->val);
+    }
+    if  (((Token *)vec->data[pos])->ty == TK_IDENT) 
+    {
+        return new_node_ident(((Token *)vec->data[pos++])->name);
     }
 }

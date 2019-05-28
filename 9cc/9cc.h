@@ -8,6 +8,8 @@
 enum
 {
     TK_NUM = 256, // 整数トークン
+    TK_IDENT,
+    TK_RETURN,
     TK_EQ,
     TK_NE,
     TK_LE,
@@ -19,6 +21,8 @@ enum
 enum
 {
     ND_NUM = 256, // ノードnum
+    ND_IDENT,
+    ND_RETURN,
     ND_EQ,
     ND_NE,
     ND_LE,
@@ -31,6 +35,7 @@ typedef struct
     int ty;      // トークンの型
     int val;     // tyがTK_NUMの場合、その数値
     char *input; // トークン文字列(エラーメッセージ用途)
+    int name;
 } Token;
 
 typedef struct Node
@@ -39,6 +44,7 @@ typedef struct Node
     struct Node *lhs; // 左辺
     struct Node *rhs; // 右辺
     int val;          // tyがND_NUMの場合のみ使う
+    char name; // tyがND_IDENTの場合使う
 } Node;
 
 typedef struct
@@ -54,6 +60,7 @@ Vector *new_vector();
 void vec_push(Vector *vec, void *elem);
 Node *new_node(int, Node *, Node *);
 Node *new_node_num(int);
+Node *new_node_ident(int);
 int consume(int);
 Node *expr();
 Node *mul();
@@ -62,6 +69,10 @@ Node *term();
 Node *equality();
 Node *relational();
 Node *add();
+void **program();
+Node *stmt();
+Node *assign();
+void gen_lval(Node *);
 void gen(Node *);
 void error(char *, ...);
 void error_at(char *, char *);
@@ -74,4 +85,6 @@ char *user_input;
 
 // Tokenはここに入る
 Vector *vec;
+
+Node *code[1000];
 
