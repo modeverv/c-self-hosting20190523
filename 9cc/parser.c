@@ -4,7 +4,6 @@ void tokenize()
 {
     char *p = user_input;
 
-    int i = 0;
     while (*p)
     {
         Token *t = malloc(sizeof(*t));
@@ -217,6 +216,7 @@ Node *mul()
     {
         return node;
     }
+    return node;
 }
 
 Node *unary()
@@ -247,8 +247,8 @@ Node *term()
         }
         return node;
     }
+    else/* if (((Token *)vec->data[pos])->ty == TK_NUM)*/
     // そうでなければ数値
-    if (((Token *)vec->data[pos])->ty == TK_NUM)
     {
         return new_node_num(((Token *)vec->data[pos++])->val);
     }
