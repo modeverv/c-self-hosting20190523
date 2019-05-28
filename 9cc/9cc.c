@@ -431,7 +431,6 @@ int main(int argc, char **argv)
 
     if (strcmp(argv[1], "-test") == 0)
     {
-        printf("%s\n", argv[1]);
         runtest();
         return 0;
     }
