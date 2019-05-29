@@ -30,15 +30,6 @@ void tokenize()
             continue;
         }
 
-        if (*p == '=')
-        {
-            t->ty = '=';
-            t->input = p;
-            vec_push(vec, (void *)t);
-            p++;
-            continue;
-        }
-
         if (strncmp(p, "return", 6)==0 && !is_alnum(p[6]))
         {
             t->ty = TK_RETURN;
@@ -132,6 +123,16 @@ void tokenize()
 
             continue;
         }
+        
+        if (*p == '=')
+        {
+            t->ty = '=';
+            t->input = p;
+            vec_push(vec, (void *)t);
+            p++;
+            continue;
+        }
+
         error_at(p, "トークナイズできません");
     }
     Token *t = malloc(sizeof(*t));
@@ -180,15 +181,6 @@ int consume(int ty)
     return 1;
 }
 
-/*
-expr       = equality
-equality   = relational ("==" relational | "!=" relational)*
-relational = add ("<" add | "<=" add | ">" add | ">=" add)*
-add        = mul ("+" mul | "-" mul)*
-mul        = unary ("*" unary | "/" unary)*
-unary      = ("+" | "-")? term
-term       = num | "(" expr ")"
-*/
 /*
 - program    = stmt*
 - stmt       = expr ";"
@@ -239,12 +231,7 @@ void program()
         code[i++] = stmt();
     code[i] = NULL;
 }
-/*
-Node *expr()
-{
-    return equality();
-}
-*/
+
 Node *equality()
 {
     Node *node = relational();
