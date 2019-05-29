@@ -39,13 +39,24 @@ void tokenize()
             continue;
         }
 
-        if ('a' <= *p && *p <= 'z'){
+        if ('a' <= *p && *p <= 'z')
+        {
             t->ty = TK_IDENT;
             t->input = p;
-            t->name = *p;
             t->val = *p - 'a';
-            vec_push(vec, (void *)t);
+            size_t num = 1;
+            char *pp = p;
             p++;
+            while ('a' <= *p && *p <= 'z')
+            {
+                num++;
+                p++;
+            }
+            char buf[num];
+            strncpy(buf, pp, num);
+            buf[num] = '\0';
+            t->name = strdup(buf);
+            vec_push(vec, (void *)t);
             continue;
         }
 
@@ -123,7 +134,7 @@ void tokenize()
 
             continue;
         }
-        
+
         if (*p == '=')
         {
             t->ty = '=';
@@ -159,11 +170,12 @@ Node *new_node_num(int val)
     return node;
 }
 
-Node *new_node_ident(int val)
+Node *new_node_ident(char *val)
 {
     //error("%c",val);
     Node *node = malloc(sizeof(Node));
     node->ty = ND_IDENT;
+    //printf("new_node_ident %s\n", val);
     node->name = val;
     return node;
 }
@@ -339,7 +351,6 @@ Node *term()
     } 
     if  (((Token *)vec->data[pos])->ty == TK_IDENT) 
     {
-        //error("%d",((Token *)vec->data[pos++])->name);
         return new_node_ident(((Token *)vec->data[pos++])->name);
     }
     if (((Token *)vec->data[pos])->ty == TK_NUM)

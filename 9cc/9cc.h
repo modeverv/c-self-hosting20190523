@@ -67,7 +67,7 @@ Vector *new_vector();
 void vec_push(Vector *vec, void *elem);
 Node *new_node(int, Node *, Node *);
 Node *new_node_num(int);
-Node *new_node_ident(int);
+Node *new_node_ident(char*);
 int consume(int);
 Node *expr();
 Node *mul();
