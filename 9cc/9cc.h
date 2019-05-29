@@ -54,8 +54,14 @@ typedef struct
     int len;
 } Vector;
 
+typedef struct {
+    Vector *keys;
+    Vector *vals;
+} Map;
+
 // プロトタイプ
-void tokenize();
+void
+tokenize();
 Vector *new_vector();
 void vec_push(Vector *vec, void *elem);
 Node *new_node(int, Node *, Node *);
@@ -79,6 +85,10 @@ void error_at(char *, char *);
 // test
 int expect(int, int, int);
 void runtest();
+Map *new_map();
+void map_put(Map *map, char *key, void *val);
+void *map_get(Map *map, char *key);
+
 
 // 入力プログラム
 char *user_input;

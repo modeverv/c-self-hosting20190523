@@ -1,26 +1,15 @@
 #include "9cc.h"
 
 void gen_lval(Node *node) {
-    /*    
-//    error("%c",node->name);
+
     if (node->ty != ND_IDENT) 
         error("左辺値が変数ではない %d", node->ty);
-//    else
-//        error("NO_IDENT %d", node->ty);
+
     int offset = ('z' - node->name + 1) * 8;
     
     printf("  mov rax, rbp\n");
     printf("  sub rax, %d\n", offset);
     printf("  push rax\n");
-*/
-    if (node->ty == ND_IDENT) {
-//        error("%d", ('z' - node->name + 1));
-        int offset = ('z' - node->name + 1);
-        //error("%d", offset);
-        printf("  mov rax, rbp\n");
-        printf("  sub rax, %d\n", offset);
-        printf("  push rax\n");
-    }
 }
 
 void gen(Node *node)
