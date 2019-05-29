@@ -8,6 +8,8 @@
 enum
 {
     TK_NUM = 256, // 整数トークン
+    TK_IDENT,
+    TK_RETURN,
     TK_EQ,
     TK_NE,
     TK_LE,
@@ -19,6 +21,8 @@ enum
 enum
 {
     ND_NUM = 256, // ノードnum
+    ND_IDENT,
+    ND_RETURN,
     ND_EQ,
     ND_NE,
     ND_LE,
@@ -30,7 +34,9 @@ typedef struct
 {
     int ty;      // トークンの型
     int val;     // tyがTK_NUMの場合、その数値
+    char *name; // tyがTK_IDENTの場合、その名前
     char *input; // トークン文字列(エラーメッセージ用途)
+
 } Token;
 
 typedef struct Node
@@ -39,6 +45,8 @@ typedef struct Node
     struct Node *lhs; // 左辺
     struct Node *rhs; // 右辺
     int val;          // tyがND_NUMの場合のみ使う
+    char* name; // tyがND_IDENTの場合使う
+
 } Node;
 
 typedef struct
@@ -48,12 +56,21 @@ typedef struct
     int len;
 } Vector;
 
+typedef struct {
+    Vector *keys;
+    Vector *vals;
+} Map;
+
+Map *variables;
+
 // プロトタイプ
-void tokenize();
+void
+tokenize();
 Vector *new_vector();
 void vec_push(Vector *vec, void *elem);
 Node *new_node(int, Node *, Node *);
 Node *new_node_num(int);
+Node *new_node_ident(char*);
 int consume(int);
 Node *expr();
 Node *mul();
@@ -62,16 +79,28 @@ Node *term();
 Node *equality();
 Node *relational();
 Node *add();
+void program();
+Node *stmt();
+Node *assign();
+void gen_lval(Node *);
 void gen(Node *);
 void error(char *, ...);
 void error_at(char *, char *);
 // test
 int expect(int, int, int);
 void runtest();
+Map *new_map();
+void map_put(Map *map, char *key, void *val);
+void *map_get(Map *map, char *key);
+void add_variable(char *name_perm);
+void *get_variable_address(char *name);
 
 // 入力プログラム
 char *user_input;
 
 // Tokenはここに入る
 Vector *vec;
+
+Node *code[1000];
+
 
