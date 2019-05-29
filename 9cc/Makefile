@@ -1,4 +1,4 @@
-CFLAGS=-Wall -std=c11 -Wno-int-conversion -Wno-int-to-pointer-cast -Wno-return-type
+CFLAGS=-Wall -std=c11 -Wno-int-conversion -Wno-int-to-pointer-cast -Wno-return-type -Wno-implicit-function-declaration -Wno-pointer-to-int-cast
 SRCS=$(wildcard *.c)
 OBJS=$(SRCS:.c=.o)
 
