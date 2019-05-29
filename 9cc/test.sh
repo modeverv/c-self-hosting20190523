@@ -50,4 +50,5 @@ try 2 "return a = b = 2;"
 try 2 "a = 2;return 2;"
 try 4 "a = 2;b= a+2;return b;"
 try 3 "a = 4;a = 2+1;return a ;"
+try 3 "aa = 4;aa = 2+1;return aa ;"
 echo OK
