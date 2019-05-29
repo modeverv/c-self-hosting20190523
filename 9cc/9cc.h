@@ -45,7 +45,8 @@ typedef struct Node
     struct Node *lhs; // 左辺
     struct Node *rhs; // 右辺
     int val;          // tyがND_NUMの場合のみ使う
-    char name; // tyがND_IDENTの場合使う
+    char* name; // tyがND_IDENTの場合使う
+
 } Node;
 
 typedef struct
@@ -59,6 +60,8 @@ typedef struct {
     Vector *keys;
     Vector *vals;
 } Map;
+
+Map *variables;
 
 // プロトタイプ
 void
@@ -89,7 +92,8 @@ void runtest();
 Map *new_map();
 void map_put(Map *map, char *key, void *val);
 void *map_get(Map *map, char *key);
-
+void add_variable(char *name_perm);
+void *get_variable_address(char *name);
 
 // 入力プログラム
 char *user_input;
@@ -98,4 +102,5 @@ char *user_input;
 Vector *vec;
 
 Node *code[1000];
+
 

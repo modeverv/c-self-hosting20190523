@@ -172,11 +172,13 @@ Node *new_node_num(int val)
 
 Node *new_node_ident(char *val)
 {
-    //error("%c",val);
     Node *node = malloc(sizeof(Node));
     node->ty = ND_IDENT;
-    //printf("new_node_ident %s\n", val);
     node->name = val;
+    if(get_variable_address(node->name) == NULL){
+        add_variable(node->name);
+    }
+
     return node;
 }
 
@@ -205,6 +207,17 @@ mul        = unary ("*" unary | "/" unary)*
 unary      = ("+" | "-")? term
 term       = num | ident | "(" expr ")"
 */
+
+void add_variable(char *name_perm)
+{
+    static int variable_address = 0;
+    map_put(variables, name_perm, (void *)(++variable_address * 8));
+}
+
+void *get_variable_address(char *name)
+{
+    return map_get(variables, name);
+}
 
 Node *assign()
 {

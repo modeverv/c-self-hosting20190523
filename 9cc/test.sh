@@ -28,7 +28,6 @@ try 4 "return (   3  +  5)  /  2;"
 try 5 "-3 + 8;"
 try 3 "   +6 + -3;"
 try 2 " -1 * -1 + +1   ;"
-
 try 1 " 1 == 1 ;"
 try 1 "return 1 == 1 ;"
 try 0 " 1 == 0;"
@@ -51,4 +50,5 @@ try 2 "a = 2;return 2;"
 try 4 "a = 2;b= a+2;return b;"
 try 3 "a = 4;a = 2+1;return a ;"
 try 3 "aa = 4;aa = 2+1;return aa ;"
+try 2 "aa = 1;bb = aa+1;return bb ;"
 echo OK

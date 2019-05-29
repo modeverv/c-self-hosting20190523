@@ -37,6 +37,7 @@ int main(int argc, char **argv)
     }
 
     vec = new_vector();
+    variables = new_map();
 
     // トークナイズする
     user_input = argv[1];
